@@ -1,3 +1,11 @@
+<p align="center">
+  <img
+    src="assets/logos/rebeldot-logo-tagline-white-yellow@3x.png"
+    alt="RebelDot — Leading the Change"
+    width="360"
+  />
+</p>
+
 # rebel-HDF5-viewer
 
 ## Dataset tooling
@@ -265,11 +273,3 @@ Developed at [RebelDot](https://www.rebeldot.com/).
 
 Released under the [MIT License](LICENSE.md), the same license as the upstream
 project it is based on.
-
-<p align="center">
-  <img
-    src="assets/logos/rebeldot-logo-tagline-white-yellow@3x.png"
-    alt="RebelDot — Leading the Change"
-    width="360"
-  />
-</p>
