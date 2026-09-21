@@ -190,6 +190,32 @@ describe('resolveClickedPoint', () => {
     expect(resolveClickedPoint(event, result)).toBe(failedPoint);
   });
 
+  it('resolves a point in the correct object panel', () => {
+    const cubePoint = {
+      objectName: 'cube',
+    } as unknown as ObjectDistributionPoint;
+    const pinPoint = {
+      objectName: 'pin',
+    } as unknown as ObjectDistributionPoint;
+    const multiResult = {
+      ...result,
+      allObjects: true,
+      successPoints: [cubePoint, pinPoint],
+    };
+    const event: PlotClickEvent = {
+      points: [
+        {
+          pointIndex: 0,
+          data: {
+            name: 'Success',
+            customdata: [['ds', 'demo_0', '', '', '', '', '', '', '', 'pin']],
+          },
+        },
+      ],
+    };
+    expect(resolveClickedPoint(event, multiResult)).toBe(pinPoint);
+  });
+
   it('returns null when result is null', () => {
     const event: PlotClickEvent = {
       points: [{ pointIndex: 0, data: { name: 'Success' } }],

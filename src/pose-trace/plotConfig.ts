@@ -325,10 +325,14 @@ function formatObjectScalar(value: number | null): string {
   return value === null ? '-' : value.toFixed(4);
 }
 
-function buildObjectHoverTemplate(category: string): string {
+function buildObjectHoverTemplate(
+  category: string,
+  includeObjectName: boolean,
+): string {
   return [
     '<b>%{customdata[0]}</b>',
     'episode: %{customdata[1]}',
+    ...(includeObjectName ? ['object: %{customdata[9]}'] : []),
     `category: ${category}`,
     'anchor x: %{x:.4f} m',
     'anchor y: %{y:.4f} m',
@@ -349,6 +353,9 @@ function buildObjectScatterTrace(
   color: string,
   opacity: number,
   hoverEnabled: boolean,
+  axisIndex = 1,
+  showLegend = true,
+  compact = false,
 ): Data | null {
   if (points.length === 0) {
     return null;
@@ -356,15 +363,19 @@ function buildObjectScatterTrace(
 
   return {
     type: 'scatter',
+    xaxis: axisIndex === 1 ? 'x' : `x${axisIndex}`,
+    yaxis: axisIndex === 1 ? 'y' : `y${axisIndex}`,
     x: points.map((point) => point.x),
     y: points.map((point) => point.y),
     mode: 'markers',
     name,
+    legendgroup: name,
+    showlegend: showLegend,
     marker: {
       color,
-      size: 11,
+      size: compact ? 7 : 11,
       opacity,
-      line: { color: 'rgba(255,255,255,0.7)', width: 0.6 },
+      line: { color: 'rgba(255,255,255,0.7)', width: 0.4 },
     },
     customdata: points.map((point) => [
       point.datasetName,
@@ -376,9 +387,10 @@ function buildObjectScatterTrace(
       point.numSamples === null ? '-' : String(point.numSamples),
       point.sourceLeft,
       point.sourceRight,
+      point.objectName ?? 'Default object',
     ]),
     hovertemplate: hoverEnabled
-      ? buildObjectHoverTemplate(name.toLowerCase())
+      ? buildObjectHoverTemplate(name.toLowerCase(), compact)
       : '<extra></extra>',
     hoverinfo: hoverEnabled ? 'all' : 'skip',
   };
@@ -390,6 +402,7 @@ function buildObjectSelectedEpisodeHover(
   return [
     `<b>${point.datasetName}</b>`,
     `episode: ${point.demoName}`,
+    ...(point.objectName ? [`object: ${point.objectName}`] : []),
     `category: ${point.category}`,
     `anchor x: ${point.x.toFixed(4)} m`,
     `anchor y: ${point.y.toFixed(4)} m`,
@@ -423,6 +436,7 @@ function buildObjectSourceOverlay(
   lineColor: string,
   markerName: string,
   lineName: string,
+  axisIndex = 1,
 ): Data[] {
   if (details.length === 0) {
     return [];
@@ -431,6 +445,8 @@ function buildObjectSourceOverlay(
   return [
     {
       type: 'scatter',
+      xaxis: axisIndex === 1 ? 'x' : `x${axisIndex}`,
+      yaxis: axisIndex === 1 ? 'y' : `y${axisIndex}`,
       x: details.flatMap((detail) => [selectedPoint.x, detail.x, null]),
       y: details.flatMap((detail) => [selectedPoint.y, detail.y, null]),
       mode: 'lines',
@@ -441,6 +457,8 @@ function buildObjectSourceOverlay(
     },
     {
       type: 'scatter',
+      xaxis: axisIndex === 1 ? 'x' : `x${axisIndex}`,
+      yaxis: axisIndex === 1 ? 'y' : `y${axisIndex}`,
       x: details.map((detail) => detail.x),
       y: details.map((detail) => detail.y),
       mode: 'text+markers',
@@ -472,45 +490,68 @@ export function buildObjectDistributionData(
   const baseOpacity = selectedPoint ? 0.14 : 0.82;
   const baseHoverEnabled = !selectedPoint;
   const traces: Data[] = [];
+  const categories: {
+    name: 'Success' | 'Failed' | 'Teleop';
+    color: string;
+    points: ObjectDistributionPoint[];
+  }[] = [
+    { name: 'Success', color: '#2ca02c', points: result.successPoints },
+    { name: 'Failed', color: '#d62728', points: result.failedPoints },
+    { name: 'Teleop', color: '#1f77b4', points: result.teleopPoints },
+  ];
 
-  const successTrace = buildObjectScatterTrace(
-    result.successPoints,
-    'Success',
-    '#2ca02c',
-    baseOpacity,
-    baseHoverEnabled,
-  );
-  const failedTrace = buildObjectScatterTrace(
-    result.failedPoints,
-    'Failed',
-    '#d62728',
-    baseOpacity,
-    baseHoverEnabled,
-  );
-  const teleopTrace = buildObjectScatterTrace(
-    result.teleopPoints,
-    'Teleop',
-    '#1f77b4',
-    baseOpacity,
-    baseHoverEnabled,
-  );
-
-  if (successTrace) {
-    traces.push(successTrace);
-  }
-  if (failedTrace) {
-    traces.push(failedTrace);
-  }
-  if (teleopTrace) {
-    traces.push(teleopTrace);
+  if (result.allObjects) {
+    const shownCategories = new Set<string>();
+    result.availableObjects.forEach((objectName, index) => {
+      for (const category of categories) {
+        const points = category.points.filter(
+          (point) => point.objectName === objectName,
+        );
+        const trace = buildObjectScatterTrace(
+          points,
+          category.name,
+          category.color,
+          selectedPoint ? 0.12 : 0.55,
+          baseHoverEnabled,
+          index + 1,
+          !shownCategories.has(category.name),
+          true,
+        );
+        if (trace) {
+          traces.push(trace);
+          shownCategories.add(category.name);
+        }
+      }
+    });
+  } else {
+    for (const category of categories) {
+      const trace = buildObjectScatterTrace(
+        category.points,
+        category.name,
+        category.color,
+        baseOpacity,
+        baseHoverEnabled,
+      );
+      if (trace) {
+        traces.push(trace);
+      }
+    }
   }
 
   if (!selectedPoint || selectedPoint.category === 'teleop') {
     return traces;
   }
 
+  const selectedAxisIndex = result.allObjects
+    ? Math.max(
+        1,
+        result.availableObjects.indexOf(selectedPoint.objectName ?? '') + 1,
+      )
+    : 1;
   const selectedTrace: Data = {
     type: 'scatter',
+    xaxis: selectedAxisIndex === 1 ? 'x' : `x${selectedAxisIndex}`,
+    yaxis: selectedAxisIndex === 1 ? 'y' : `y${selectedAxisIndex}`,
     x: [selectedPoint.x],
     y: [selectedPoint.y],
     mode: 'text+markers',
@@ -539,6 +580,7 @@ export function buildObjectDistributionData(
       'rgba(240, 200, 0, 0.95)',
       'Selected Left Sources',
       'Selected Left Links',
+      selectedAxisIndex,
     ),
     ...buildObjectSourceOverlay(
       selectedPoint.sourceRightDetails,
@@ -548,6 +590,7 @@ export function buildObjectDistributionData(
       'rgba(255, 140, 0, 0.95)',
       'Selected Right Sources',
       'Selected Right Links',
+      selectedAxisIndex,
     ),
   );
 
@@ -555,12 +598,12 @@ export function buildObjectDistributionData(
 }
 
 export function buildObjectDistributionLayout(
-  _result: ObjectDistributionResult | null,
+  result: ObjectDistributionResult | null,
   anchor: ObjectDistributionAnchor,
 ): Partial<Layout> {
   const theme = getPlotTheme();
 
-  return {
+  const layout: Partial<Layout> & Record<string, unknown> = {
     template: PLOTLY_WHITE_TEMPLATE,
     height: 820,
     paper_bgcolor: theme.paperBg,
@@ -602,6 +645,104 @@ export function buildObjectDistributionLayout(
       color: theme.textColor,
     },
   };
+
+  if (!result?.allObjects || result.availableObjects.length === 0) {
+    return layout;
+  }
+
+  const count = result.availableObjects.length;
+  const columns = Math.min(3, Math.ceil(Math.sqrt(count)));
+  const rows = Math.ceil(count / columns);
+  const xGap = 0.045;
+  const yGap = Math.min(0.105, 0.3 / Math.max(1, rows - 1));
+  const cellWidth = (1 - xGap * (columns - 1)) / columns;
+  const cellHeight = (1 - yGap * (rows - 1)) / rows;
+  const allPoints = [
+    ...result.successPoints,
+    ...result.failedPoints,
+    ...result.teleopPoints,
+  ];
+  let minX = Infinity;
+  let maxX = -Infinity;
+  let minY = Infinity;
+  let maxY = -Infinity;
+  for (const point of allPoints) {
+    minX = Math.min(minX, point.x);
+    maxX = Math.max(maxX, point.x);
+    minY = Math.min(minY, point.y);
+    maxY = Math.max(maxY, point.y);
+  }
+  const xPadding = Number.isFinite(minX)
+    ? Math.max((maxX - minX) * 0.06, 0.005)
+    : 1;
+  const yPadding = Number.isFinite(minY)
+    ? Math.max((maxY - minY) * 0.06, 0.005)
+    : 1;
+  const xRange = Number.isFinite(minX)
+    ? [minX - xPadding, maxX + xPadding]
+    : [-1, 1];
+  const yRange = Number.isFinite(minY)
+    ? [minY - yPadding, maxY + yPadding]
+    : [-1, 1];
+  const annotations: NonNullable<Layout['annotations']> = [];
+
+  layout.height = Math.max(720, rows * 390 + 150);
+  layout.margin = { l: 80, r: 35, t: 100, b: 70 };
+  layout.legend = {
+    ...layout.legend,
+    y: 1.09,
+    groupclick: 'togglegroup',
+  };
+  layout.annotations = annotations;
+
+  result.availableObjects.forEach((objectName, index) => {
+    const column = index % columns;
+    const row = Math.floor(index / columns);
+    const xStart = column * (cellWidth + xGap);
+    const xEnd = xStart + cellWidth;
+    const yEnd = 1 - row * (cellHeight + yGap);
+    const yStart = yEnd - cellHeight;
+    const axisIndex = index + 1;
+    const xRef = axisIndex === 1 ? 'x' : `x${axisIndex}`;
+    const yRef = axisIndex === 1 ? 'y' : `y${axisIndex}`;
+
+    layout[axisIndex === 1 ? 'xaxis' : `xaxis${axisIndex}`] = {
+      anchor: yRef,
+      domain: [xStart, xEnd],
+      range: xRange,
+      matches: axisIndex === 1 ? undefined : 'x',
+      title: row === rows - 1 ? { text: `${anchor} x [m]` } : undefined,
+      showticklabels: row === rows - 1,
+      gridcolor: theme.gridColor,
+      zerolinecolor: theme.gridColor,
+      color: theme.textColor,
+    };
+    layout[axisIndex === 1 ? 'yaxis' : `yaxis${axisIndex}`] = {
+      anchor: xRef,
+      domain: [yStart, yEnd],
+      range: yRange,
+      matches: axisIndex === 1 ? undefined : 'y',
+      title: column === 0 ? { text: `${anchor} y [m]` } : undefined,
+      showticklabels: column === 0,
+      gridcolor: theme.gridColor,
+      zerolinecolor: theme.gridColor,
+      color: theme.textColor,
+    };
+    annotations.push({
+      text: objectName
+        .replaceAll('&', '&amp;')
+        .replaceAll('<', '&lt;')
+        .replaceAll('>', '&gt;'),
+      x: (xStart + xEnd) / 2,
+      y: yEnd + 0.012,
+      xref: 'paper',
+      yref: 'paper',
+      showarrow: false,
+      font: { color: theme.textColor, family: FONT_FAMILY, size: 14 },
+    });
+  });
+
+  return layout;
 }
 
 function buildFailureHeatmapTrace(

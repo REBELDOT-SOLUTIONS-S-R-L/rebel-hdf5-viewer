@@ -17,7 +17,10 @@ export interface DatasetGroupSelection {
 export interface PlotClickEvent {
   points?: {
     pointIndex?: number;
-    data?: { name?: string };
+    data?: {
+      name?: string;
+      customdata?: (string | number | null)[][];
+    };
   }[];
 }
 
@@ -141,12 +144,23 @@ export function resolveClickedPoint(
     return null;
   }
 
+  const objectName = point.data?.customdata?.[pointIndex]?.[9];
+  if (result.allObjects && typeof objectName !== 'string') {
+    return null;
+  }
+
   if (point.data?.name === 'Success') {
-    return result.successPoints[pointIndex] ?? null;
+    const points = result.allObjects
+      ? result.successPoints.filter((entry) => entry.objectName === objectName)
+      : result.successPoints;
+    return points[pointIndex] ?? null;
   }
 
   if (point.data?.name === 'Failed') {
-    return result.failedPoints[pointIndex] ?? null;
+    const points = result.allObjects
+      ? result.failedPoints.filter((entry) => entry.objectName === objectName)
+      : result.failedPoints;
+    return points[pointIndex] ?? null;
   }
 
   return null;
