@@ -5,34 +5,58 @@
   min-height: 0;
 }
 
+/*
+ * H5Web in the RebelDot palette: neutral greys for the chrome, brand yellow for
+ * the selection and the active controls, ink for text roles. H5Web's own
+ * defaults are a green/teal theme declared on its root, which is this same
+ * element, so these win by specificity.
+ */
 .viewerTheme :global([data-fullscreen-root]) {
   flex: 1;
-  --secondary: var(--primary);
-  --secondary-light: var(--primary-light);
-  --secondary-lighter: var(--primary-lighter);
-  --secondary-dark: var(--primary-dark);
-  --secondary-dark-15: var(--primary-dark-bg);
-  --secondary-darker: var(--primary-dark);
-  --secondary-bg: var(--primary-bg);
-  --secondary-light-bg: var(--primary-light-bg);
-  --h5w-matrix-cell--bgColorAlt: color-mix(
-    in srgb,
-    var(--primary-light) 40%,
-    transparent
-  );
-  --h5w-matrix-indexCell--bgColor: color-mix(
-    in srgb,
-    var(--primary) 45%,
-    transparent
-  );
-  --h5w-matrix-indexCell--bgColorAlt: color-mix(
-    in srgb,
-    var(--primary-light) 35%,
-    transparent
-  );
-  --h5w-matrix-anchorCell--bgColor: color-mix(
-    in srgb,
-    var(--primary-dark) 55%,
-    transparent
-  );
+  background-color: #ffffff;
+  font-family: var(--font-body);
+
+  --primary: #ffd000; /* selected entity, progress fill */
+  --primary-light: #fff3bf; /* entity hover */
+  --primary-lighter: #f0f0f0; /* sidebar tab bar */
+  --primary-dark: #121212; /* selected tab edge, focus outline */
+  --primary-bg: #f5f5f5; /* sidebar, table headers, matrix index */
+  --primary-light-bg: #fafafa;
+  --primary-dark-bg: #e6e6e6;
+  --secondary: #ffd000; /* slider thumb, selected visualization */
+  --secondary-light: #fff3bf; /* pressed buttons, selected options */
+  --secondary-lighter: #f0f0f0; /* button hover */
+  --secondary-dark: #414141; /* labels, histogram, data track */
+  --secondary-dark-15: rgba(18, 18, 18, 0.12);
+  --secondary-darker: #121212;
+  --secondary-bg: #f5f5f5; /* breadcrumb bar */
+  --secondary-light-bg: #fafafa; /* toolbars, matrix alternate rows */
+}
+
+/*
+ * In dark mode H5Web puts `filter: invert()` on this element, so every colour
+ * below is the inverse of what appears on screen (shown in the comments). That
+ * keeps the dark viewer on the same #1b1b1b card as the rest of the app, and
+ * keeps yellow yellow instead of letting the filter turn it blue.
+ */
+@media (prefers-color-scheme: dark) {
+  .viewerTheme :global([data-fullscreen-root][data-allow-dark-mode]) {
+    background-color: #e4e4e4; /* #1b1b1b */
+
+    --primary: #c2c2c2; /* #3d3d3d: selected entity keeps white text readable */
+    --primary-light: #d3d3d3; /* #2c2c2c */
+    --primary-lighter: #dddddd; /* #222222 */
+    --primary-dark: #002fff; /* #ffd000 */
+    --primary-bg: #dddddd; /* #222222 */
+    --primary-light-bg: #e0e0e0; /* #1f1f1f */
+    --primary-dark-bg: #c2c2c2; /* #3d3d3d */
+    --secondary: #002fff; /* #ffd000 */
+    --secondary-light: #c2c2c2; /* #3d3d3d */
+    --secondary-lighter: #d3d3d3; /* #2c2c2c */
+    --secondary-dark: #303030; /* #cfcfcf */
+    --secondary-dark-15: rgba(0, 0, 0, 0.12);
+    --secondary-darker: #000000; /* #ffffff */
+    --secondary-bg: #dddddd; /* #222222 */
+    --secondary-light-bg: #e0e0e0; /* #1f1f1f */
+  }
 }

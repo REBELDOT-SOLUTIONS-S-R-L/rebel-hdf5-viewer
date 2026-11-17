@@ -14,14 +14,20 @@
   margin-top: 0;
   margin-bottom: 0.75rem;
   color: var(--color-heading);
-  font-family: var(--font-logo);
-  font-weight: normal;
-  letter-spacing: 0.03em;
+  font-family: var(--font-display);
+  font-weight: 500;
 }
 
+/* The deck's highlighter stroke: a yellow band under the lower half of a word. */
 .root h2 > span {
-  color: var(--color-five);
-  filter: var(--color-accent-filter);
+  background: linear-gradient(#ffd000, #ffd000) 0 92% / 100% 42% no-repeat;
+}
+
+@media (prefers-color-scheme: dark) {
+  .root h2 > span {
+    background: none;
+    color: var(--color-accent-text);
+  }
 }
 
 .root p,

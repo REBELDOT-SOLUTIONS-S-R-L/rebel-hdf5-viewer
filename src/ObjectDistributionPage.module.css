@@ -31,17 +31,17 @@
   margin: 0;
   color: var(--color-gray);
   font-size: 0.82em;
-  font-weight: 700;
+  font-weight: 600;
   letter-spacing: 0.08em;
   text-transform: uppercase;
 }
 
 .title {
   margin: 0.25rem 0 0;
-  color: var(--color-gray);
-  font-family: var(--font-logo);
+  color: var(--color-heading);
+  font-family: var(--font-display);
   font-size: clamp(2.1em, 3vw, 2.8em);
-  font-weight: normal;
+  font-weight: 500;
 }
 
 .subtitle {
@@ -76,7 +76,7 @@
   padding: 0.6rem 0.95rem;
   border: 1px solid var(--color-border);
   border-radius: 999px;
-  background: rgba(255, 255, 255, 0.03);
+  background: color-mix(in srgb, var(--color-tint-base) 3%, transparent);
   color: var(--color-gray);
   transition:
     background-color 0.2s ease-out,
@@ -112,7 +112,7 @@
   margin-bottom: 0.5rem;
   color: var(--color-gray);
   font-size: 0.82em;
-  font-weight: 700;
+  font-weight: 600;
   letter-spacing: 0.06em;
   text-transform: uppercase;
 }
@@ -133,7 +133,7 @@
   padding: 0.85rem 1rem;
   border: 1px solid var(--color-border);
   border-radius: 0.85rem;
-  background: rgba(255, 255, 255, 0.02);
+  background: color-mix(in srgb, var(--color-tint-base) 2%, transparent);
   color: var(--color-gray);
   cursor: pointer;
 }
@@ -141,7 +141,7 @@
 .checkboxField input {
   flex: 0 0 auto;
   margin: 0;
-  accent-color: #ffd000;
+  accent-color: var(--color-accent);
 }
 
 .checkboxField span {
@@ -205,14 +205,14 @@
   margin: 0;
   color: var(--color-gray);
   font-size: 0.78em;
-  font-weight: 700;
+  font-weight: 600;
   letter-spacing: 0.08em;
   text-transform: uppercase;
 }
 
 .recommendationsTitle {
   margin: 0.2rem 0 0;
-  color: var(--color-gray);
+  color: var(--color-heading);
   font-size: 1.25em;
 }
 
@@ -233,7 +233,7 @@
   padding: 1rem 1rem 0.95rem;
   border: 1px solid var(--color-border);
   border-radius: 0.9rem;
-  background: rgba(255, 255, 255, 0.03);
+  background: color-mix(in srgb, var(--color-tint-base) 3%, transparent);
   color: var(--color-gray);
   box-shadow: 0 0.4rem 1rem var(--color-shadow-soft);
   font-variant-numeric: tabular-nums;
@@ -264,7 +264,7 @@
   display: inline-block;
   min-width: 5.5rem;
   color: var(--color-text-muted);
-  font-weight: 700;
+  font-weight: 600;
   text-transform: uppercase;
   letter-spacing: 0.04em;
   font-size: 0.78em;
@@ -278,10 +278,10 @@
 
 .emptyTitle {
   margin: 0;
-  color: var(--color-gray);
-  font-family: var(--font-logo);
+  color: var(--color-heading);
+  font-family: var(--font-display);
   font-size: 1.5em;
-  font-weight: normal;
+  font-weight: 500;
 }
 
 .emptyText {
@@ -297,13 +297,11 @@
 
 .openBtn {
   composes: primaryBtn from './utils.module.css';
-  background-color: #ffd000 !important;
-  color: #111824 !important;
   text-decoration: none;
 }
 
 .openBtn:hover {
-  background-color: #e1b800 !important;
+  background-color: var(--color-accent-hover) !important;
 }
 
 @media (max-width: 90em) {

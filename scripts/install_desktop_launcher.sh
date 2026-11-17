@@ -5,7 +5,7 @@ ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 APPLICATIONS_DIR="${XDG_DATA_HOME:-$HOME/.local/share}/applications"
 DESKTOP_FILE="$APPLICATIONS_DIR/rebelhdf5.desktop"
 LAUNCHER="$ROOT_DIR/scripts/launch_desktop.sh"
-ICON="$ROOT_DIR/public/favicon.ico"
+ICON="$ROOT_DIR/public/icon-512.png"
 
 mkdir -p "$APPLICATIONS_DIR"
 
