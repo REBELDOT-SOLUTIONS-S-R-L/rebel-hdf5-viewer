@@ -84,7 +84,9 @@
 }
 
 .navItems {
-  flex: 1 1 0%;
+  /* Take the menu's own height; Opened files gets the rest. The menu only
+     scrolls when the window is too short for it. */
+  flex: 0 1 auto;
   min-height: 0;
   padding: 0 0.25rem;
   overflow-x: hidden;
