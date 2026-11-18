@@ -19,7 +19,7 @@
 }
 
 .detailedError {
-  color: brown;
+  color: var(--color-danger-strong);
 }
 
 .detailedError > summary {
@@ -44,7 +44,7 @@
   padding: 0.25rem 0.75rem;
   background-color: var(--color-danger-bg);
   border: 2px solid var(--color-danger-strong);
-  border-radius: 0.25rem;
+  border-radius: 999px;
   color: inherit;
   font-size: 90%;
   font-weight: 600;
@@ -54,7 +54,7 @@
 
 .btn:hover {
   background-color: var(--color-danger-strong);
-  color: white;
+  color: var(--color-surface);
 }
 
 .debug {

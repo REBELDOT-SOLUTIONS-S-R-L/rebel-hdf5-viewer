@@ -34,7 +34,7 @@ interface TracePoint3D {
   z: number;
 }
 
-const FONT_FAMILY = 'Roboto, sans-serif';
+const FONT_FAMILY = 'Inter, -apple-system, "Segoe UI", Roboto, sans-serif';
 const PLOTLY_WHITE_TEMPLATE = 'plotly_white' as unknown as Layout['template'];
 const FUTURE_TRACE_OPACITY = 0.22;
 const FUTURE_MARKER_OPACITY = 0.35;
@@ -83,15 +83,12 @@ function cssColor(name: string, fallback: string): string {
 function getPlotTheme(): PlotTheme {
   return {
     paperBg: cssColor('--color-plot-paper', '#ffffff'),
-    plotBg: cssColor('--color-plot-surface', '#f7f7fa'),
-    gridColor: cssColor('--color-plot-grid', 'rgba(90, 90, 102, 0.14)'),
-    textColor: cssColor('--color-text', '#5a5a66'),
-    mutedText: cssColor('--color-text-muted', '#7b7b87'),
+    plotBg: cssColor('--color-plot-surface', '#f5f5f5'),
+    gridColor: cssColor('--color-plot-grid', 'rgba(18, 18, 18, 0.1)'),
+    textColor: cssColor('--color-text', '#414141'),
+    mutedText: cssColor('--color-text-muted', '#6b6b6b'),
     legendBg: cssColor('--color-plot-legend-bg', 'rgba(255, 255, 255, 0.92)'),
-    legendBorder: cssColor(
-      '--color-plot-legend-border',
-      'rgba(90, 90, 102, 0.14)',
-    ),
+    legendBorder: cssColor('--color-plot-legend-border', '#e6e6e6'),
   };
 }
 

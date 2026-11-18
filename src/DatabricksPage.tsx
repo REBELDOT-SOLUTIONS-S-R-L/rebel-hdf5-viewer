@@ -633,7 +633,10 @@ function usePipelinesSection(backendAvailable: boolean) {
               {run.polling ? (
                 <FiLoader aria-hidden className={styles.spin} />
               ) : run.resultState === 'SUCCESS' ? (
-                <FiCheckCircle aria-hidden style={{ color: '#a9e4a2' }} />
+                <FiCheckCircle
+                  aria-hidden
+                  style={{ color: 'var(--color-success-text)' }}
+                />
               ) : run.state === 'ERROR' || run.resultState === 'FAILED' ? (
                 <FiXCircle
                   aria-hidden
