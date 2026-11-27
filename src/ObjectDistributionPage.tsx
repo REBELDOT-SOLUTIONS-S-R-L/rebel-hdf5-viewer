@@ -49,6 +49,7 @@ const VIEW_TABS: { id: ObjectViewTab; label: string }[] = [
 ];
 
 const MIN_GENERATED_COUNT_OPTIONS = [1, 3, 5, 10];
+const ALL_OBJECTS_VALUE = '__all_objects__';
 
 function noop(): void {
   return undefined;
@@ -65,7 +66,11 @@ function hasOpenedFiles(openedFileCount: number): boolean {
 function selectedObjectValue(
   objectName: string | null,
   availableObjects: readonly string[],
+  allObjects: boolean,
 ): string {
+  if (allObjects) {
+    return ALL_OBJECTS_VALUE;
+  }
   return objectName ?? availableObjects.at(0) ?? '';
 }
 
@@ -135,6 +140,8 @@ function ObjectDistributionPage() {
   const [activeTab, setActiveTab] = useState<ObjectViewTab>('scatter');
   const anchor = DEFAULT_OBJECT_DISTRIBUTION_ANCHOR;
   const [objectName, setObjectName] = useState<string | null>(null);
+  const [allObjects, setAllObjects] = useState(false);
+  const loadAllObjects = isScatterTab(activeTab) && allObjects;
   const [showTeleopOverlay, setShowTeleopOverlay] = useState(true);
   const [minGeneratedCount, setMinGeneratedCount] = useState(3);
   const [result, setResult] = useState<ObjectDistributionResult | null>(null);
@@ -237,6 +244,7 @@ function ObjectDistributionPage() {
           teleopSourceId: teleopState.source?.sourceId ?? null,
           anchor,
           objectName,
+          allObjects: loadAllObjects,
         });
         if (cancelled) {
           return;
@@ -268,6 +276,7 @@ function ObjectDistributionPage() {
     failedState.error,
     failedState.loading,
     failedState.source,
+    loadAllObjects,
     objectName,
     selectedStates,
     successState.error,
@@ -302,7 +311,10 @@ function ObjectDistributionPage() {
   const hasScatterData = totalPointCount > 0;
   const hasAnalysisDatasets = Boolean(successUrl && failedUrl);
   const analysisResult = useMemo(
-    () => (result ? buildFailureAnalysis(result, { minGeneratedCount }) : null),
+    () =>
+      result && !result.allObjects
+        ? buildFailureAnalysis(result, { minGeneratedCount })
+        : null,
     [minGeneratedCount, result],
   );
 
@@ -352,6 +364,7 @@ function ObjectDistributionPage() {
         activeTab,
         anchor,
         objectName ?? 'default',
+        loadAllObjects,
         successState.source?.sourceId ?? 'none',
         failedState.source?.sourceId ?? 'none',
         teleopState.source?.sourceId ?? 'none',
@@ -362,6 +375,7 @@ function ObjectDistributionPage() {
       activeTab,
       anchor,
       failedState.source,
+      loadAllObjects,
       minGeneratedCount,
       objectName,
       showTeleopOverlay,
@@ -497,14 +511,25 @@ function ObjectDistributionPage() {
           <select
             id="object-object"
             className={styles.select}
-            value={selectedObjectValue(objectName, availableObjects)}
+            value={selectedObjectValue(
+              objectName,
+              availableObjects,
+              allObjects,
+            )}
             disabled={availableObjects.length === 0}
             onChange={(event) => {
-              setObjectName(event.target.value || null);
+              const { value } = event.target;
+              setAllObjects(value === ALL_OBJECTS_VALUE);
+              if (value !== ALL_OBJECTS_VALUE) {
+                setObjectName(value || null);
+              }
             }}
           >
             {availableObjects.length === 0 && (
               <option value="">No rigid objects found</option>
+            )}
+            {availableObjects.length > 0 && (
+              <option value={ALL_OBJECTS_VALUE}>All objects</option>
             )}
             {availableObjects.map((name) => (
               <option key={name} value={name}>
@@ -714,15 +739,21 @@ function ObjectDistributionPage() {
                   {opened.length}
                 </div>
                 <div className={styles.statusItem}>
-                  <span className={styles.statusKey}>Success:</span>{' '}
+                  <span className={styles.statusKey}>
+                    {loadAllObjects ? 'Success points:' : 'Success:'}
+                  </span>{' '}
                   {result?.successPoints.length ?? 0}
                 </div>
                 <div className={styles.statusItem}>
-                  <span className={styles.statusKey}>Failed:</span>{' '}
+                  <span className={styles.statusKey}>
+                    {loadAllObjects ? 'Failed points:' : 'Failed:'}
+                  </span>{' '}
                   {result?.failedPoints.length ?? 0}
                 </div>
                 <div className={styles.statusItem}>
-                  <span className={styles.statusKey}>Teleop:</span>{' '}
+                  <span className={styles.statusKey}>
+                    {loadAllObjects ? 'Teleop points:' : 'Teleop:'}
+                  </span>{' '}
                   {result?.teleopPoints.length ?? 0}
                 </div>
 

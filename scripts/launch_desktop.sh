@@ -18,6 +18,7 @@ if [[ ! -f dist/index.html ]]; then
   ./node_modules/.bin/vite build
 fi
 
-# Launch Electron. main.cjs auto-detects the project-local .venv for the
-# Python backend, so no extra env is required.
-exec ./node_modules/.bin/electron electron/main.cjs
+# Use Electron's bundled runtime directly so other users do not need a
+# personal Node installation to open the already-built app. main.cjs
+# auto-detects the project-local .venv for the Python backend.
+exec ./node_modules/electron/dist/electron electron/main.cjs "$@"

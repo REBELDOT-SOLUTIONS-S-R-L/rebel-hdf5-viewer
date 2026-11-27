@@ -16,6 +16,7 @@ function makePoint(
 ): ObjectDistributionPoint {
   return {
     category,
+    objectName: null,
     datasetName: 'ds',
     demoName: `demo_${x}_${y}`,
     x,
@@ -39,6 +40,7 @@ function makeResult(
 ): ObjectDistributionResult {
   return {
     anchor: 'initial_pose',
+    allObjects: false,
     successPoints,
     failedPoints,
     teleopPoints,

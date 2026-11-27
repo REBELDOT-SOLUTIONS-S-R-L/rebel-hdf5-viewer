@@ -32,6 +32,7 @@ export interface ObjectDistributionSourceDetail {
 
 export interface ObjectDistributionPoint {
   category: ObjectDistributionCategory;
+  objectName: string | null;
   datasetName: string;
   demoName: string;
   x: number;
@@ -58,6 +59,8 @@ export interface ObjectDistributionRequest {
    * (legacy behavior).
    */
   objectName: string | null;
+  /** Collect one point per available object and episode for the scatter view. */
+  allObjects: boolean;
 }
 
 export interface ObjectDistributionSourceDiagnostics {
@@ -68,6 +71,7 @@ export interface ObjectDistributionSourceDiagnostics {
 
 export interface ObjectDistributionResult {
   anchor: ObjectDistributionAnchor;
+  allObjects: boolean;
   successPoints: ObjectDistributionPoint[];
   failedPoints: ObjectDistributionPoint[];
   teleopPoints: ObjectDistributionPoint[];
@@ -88,6 +92,9 @@ export interface DemoVideoInfo {
   height: number;
   width: number;
   channels: number;
+  chunkFrameCount?: number | null;
+  /** Recorded frames per second from the HDF5 data-group metadata. */
+  fps?: number | null;
 }
 
 export interface DemoVideoFrames extends DemoVideoInfo {

@@ -70,6 +70,7 @@ function segment(
 function emptyResult(): ObjectDistributionResult {
   return {
     anchor: 'initial_pose',
+    allObjects: false,
     successPoints: [],
     failedPoints: [],
     teleopPoints: [],
@@ -85,6 +86,7 @@ function makePoint(
 ): ObjectDistributionPoint {
   return {
     category,
+    objectName: null,
     datasetName: 'ds',
     demoName: 'demo_0',
     x,
@@ -280,5 +282,53 @@ describe('buildObjectDistribution helpers', () => {
     expect(
       buildObjectDistributionLayout(emptyResult(), 'initial_pose').height,
     ).toBe(820);
+  });
+
+  it('builds separate object panels with matched scales and shared category legend', () => {
+    const result = emptyResult();
+    result.allObjects = true;
+    result.availableObjects = ['cube', 'pin'];
+    result.successPoints.push(
+      { ...makePoint('success', 0.1, 0.2), objectName: 'cube' },
+      { ...makePoint('success', 0.3, 0.4), objectName: 'pin' },
+    );
+    result.failedPoints.push({
+      ...makePoint('failed', 0.5, 0.6),
+      objectName: 'pin',
+    });
+
+    const traces = buildObjectDistributionData(result, null);
+    expect(traces).toHaveLength(3);
+    expect(traces[0]).toMatchObject({
+      name: 'Success',
+      xaxis: 'x',
+      yaxis: 'y',
+      showlegend: true,
+    });
+    expect(traces[1]).toMatchObject({
+      name: 'Success',
+      xaxis: 'x2',
+      yaxis: 'y2',
+      showlegend: false,
+    });
+    expect(traces[2]).toMatchObject({
+      name: 'Failed',
+      xaxis: 'x2',
+      showlegend: true,
+    });
+
+    const layout = buildObjectDistributionLayout(result, 'initial_pose');
+    expect(layout).toHaveProperty('xaxis2.matches', 'x');
+    expect(layout).toHaveProperty('yaxis2.matches', 'y');
+    expect(layout).toHaveProperty('annotations.0.text', 'cube');
+    expect(layout).toHaveProperty('annotations.1.text', 'pin');
+
+    const [, selected] = result.successPoints;
+    const selectedTraces = buildObjectDistributionData(result, selected);
+    expect(selectedTraces.at(-1)).toMatchObject({
+      name: 'Selected Episode',
+      xaxis: 'x2',
+      yaxis: 'y2',
+    });
   });
 });

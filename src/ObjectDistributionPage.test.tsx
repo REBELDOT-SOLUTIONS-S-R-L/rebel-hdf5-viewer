@@ -70,6 +70,7 @@ beforeEach(() => {
   });
   mocks.loadObjectDistribution.mockResolvedValue({
     anchor: 'initial_pose',
+    allObjects: false,
     successPoints: [],
     failedPoints: [],
     teleopPoints: [],
@@ -117,5 +118,38 @@ describe('ObjectDistributionPage', () => {
     await user.click(positionTab);
     expect(positionTab).toHaveAttribute('aria-selected', 'true');
     expect(scatterTab).toHaveAttribute('aria-selected', 'false');
+  });
+
+  it('loads every object for the scatter view and the selected object for analysis', async () => {
+    mocks.loadObjectDistribution.mockResolvedValue({
+      anchor: 'initial_pose',
+      allObjects: false,
+      successPoints: [],
+      failedPoints: [],
+      teleopPoints: [],
+      teleopDiagnostics: null,
+      availableObjects: ['cube', 'pin'],
+    });
+    useStore.setState({ opened: [successF] }, false);
+    const user = userEvent.setup();
+    renderPage();
+
+    const selector = await screen.findByLabelText('Reference Object');
+    await expect(
+      screen.findByRole('option', { name: 'All objects' }),
+    ).resolves.toBeInTheDocument();
+    await user.selectOptions(selector, 'All objects');
+    await waitFor(() => {
+      expect(mocks.loadObjectDistribution).toHaveBeenLastCalledWith(
+        expect.objectContaining({ allObjects: true, objectName: null }),
+      );
+    });
+
+    await user.click(screen.getByRole('tab', { name: 'Position Map' }));
+    await waitFor(() => {
+      expect(mocks.loadObjectDistribution).toHaveBeenLastCalledWith(
+        expect.objectContaining({ allObjects: false }),
+      );
+    });
   });
 });

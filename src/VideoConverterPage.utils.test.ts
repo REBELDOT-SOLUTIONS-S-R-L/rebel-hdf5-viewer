@@ -5,7 +5,9 @@ import {
   buildDownloadFilename,
   createFrameRenderer,
   formatDemoOption,
+  getPlaybackTiming,
   getSupportedMimeType,
+  getVideoFrameRate,
   sanitizeFilenamePart,
 } from './VideoConverterPage.utils';
 
@@ -175,5 +177,25 @@ describe('createFrameRenderer', () => {
     expect([...requireImageData(lastImageData()).data]).toEqual([
       100, 100, 100, 255, 200, 200, 200, 255,
     ]);
+  });
+});
+
+describe('recorded video timing', () => {
+  it('keeps 60 Hz recordings at 60 FPS and supports legacy recordings', () => {
+    expect(getVideoFrameRate(60)).toBe(60);
+    expect(getVideoFrameRate(25)).toBe(25);
+    expect(getVideoFrameRate(undefined)).toBe(30);
+    expect(getVideoFrameRate(0)).toBe(30);
+    expect(getVideoFrameRate(Number.NaN)).toBe(30);
+  });
+  it('keeps real-time playback after a slow frame read', () => {
+    const timing = getPlaybackTiming(60, 40);
+    expect(timing.framesToAdvance).toBe(3);
+    expect(timing.delayMs).toBeCloseTo(10);
+  });
+  it('subtracts decoding time from the next display interval', () => {
+    const timing = getPlaybackTiming(60, 5);
+    expect(timing.framesToAdvance).toBe(1);
+    expect(timing.delayMs).toBeCloseTo(1000 / 60 - 5);
   });
 });

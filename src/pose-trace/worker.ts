@@ -34,6 +34,7 @@ import {
   type ParsedArticulation,
   type SourceFeatureCapabilities,
 } from './types';
+import { readVideoFrameBatch } from './video-frames';
 
 type PoseSeries = number[][][];
 type H5Module = Awaited<typeof h5wasm.ready>;
@@ -83,6 +84,8 @@ interface LoadDemoVideoPayload {
   sourceId: string;
   demoName: string;
   videoKey: DemoVideoKey;
+  startFrame: number;
+  frameCount: number;
 }
 
 interface CloseSourcePayload {
@@ -2004,12 +2007,10 @@ function readInitialPose(
   return null;
 }
 
-function readAnchorXY(
-  demoGroup: H5WasmGroup,
+function anchorXYFromPose(
+  pose: number[] | null,
   _anchor: ObjectDistributionAnchor,
-  objectName: string | null = null,
 ): [number, number] | null {
-  const pose = readInitialPose(demoGroup, objectName);
   const x = pose?.[0];
   const y = pose?.[1];
   if (!isFiniteNumber(x) || !isFiniteNumber(y)) {
@@ -2017,6 +2018,14 @@ function readAnchorXY(
   }
 
   return [roundFloat(x), roundFloat(y)];
+}
+
+function readAnchorXY(
+  demoGroup: H5WasmGroup,
+  anchor: ObjectDistributionAnchor,
+  objectName: string | null = null,
+): [number, number] | null {
+  return anchorXYFromPose(readInitialPose(demoGroup, objectName), anchor);
 }
 
 function readSourceDemoIndices(
@@ -2096,7 +2105,8 @@ function collectTeleopSources(
 
   for (const demo of entry.demos) {
     const demoGroup = getDemoGroup(entry, demo.name);
-    const xy = readAnchorXY(demoGroup, anchor, objectName);
+    const initialPose = readInitialPose(demoGroup, objectName);
+    const xy = anchorXYFromPose(initialPose, anchor);
     if (!xy) {
       missingAnchorCount += 1;
       continue;
@@ -2105,7 +2115,6 @@ function collectTeleopSources(
     // Every teleop demo is registered as a candidate source, anchored by its
     // initial-pose XY. Generated demos link back to these by the explicit
     // `reference_demo_indices`, so the source-arrow target is this position.
-    const initialPose = readInitialPose(demoGroup, objectName);
     const teleopSource: TeleopSource = {
       teleopId: makeTeleopId(entry, demo.name),
       datasetName: entry.datasetName,
@@ -2116,6 +2125,7 @@ function collectTeleopSources(
     byDemoName[demo.name] = [...(byDemoName[demo.name] ?? []), teleopSource];
     points.push({
       category: 'teleop',
+      objectName,
       datasetName: entry.datasetName,
       demoName: demo.name,
       x: xy[0],
@@ -2221,16 +2231,7 @@ function collectGeneratedObjectPoints(
   for (const demo of entry.demos) {
     const demoGroup = getDemoGroup(entry, demo.name);
     const initialPose = readInitialPose(demoGroup, objectName);
-    const anchorXY = readAnchorXY(demoGroup, anchor, objectName);
-    let xy: [number, number] | null = anchorXY;
-    if (
-      !xy &&
-      initialPose &&
-      isFiniteNumber(initialPose[0]) &&
-      isFiniteNumber(initialPose[1])
-    ) {
-      xy = [roundFloat(initialPose[0]), roundFloat(initialPose[1])];
-    }
+    const xy = anchorXYFromPose(initialPose, anchor);
     if (!xy) {
       continue;
     }
@@ -2262,6 +2263,7 @@ function collectGeneratedObjectPoints(
 
     points.push({
       category,
+      objectName,
       datasetName: entry.datasetName,
       demoName: demo.name,
       x: xy[0],
@@ -2314,39 +2316,62 @@ function loadObjectDistribution(
     throw new Error('Selected teleop source is no longer available.');
   }
 
-  const objectName = request.objectName ?? null;
   const availableObjects = collectAvailableObjects([
     successEntry,
     failedEntry,
     teleopEntry,
   ]);
-
-  const teleopCollection = teleopEntry
-    ? collectTeleopSources(teleopEntry, request.anchor, objectName)
-    : { points: [], byDemoName: {}, diagnostics: null };
+  const objectNames: (string | null)[] = request.allObjects
+    ? availableObjects
+    : [request.objectName ?? null];
+  const collections = objectNames.map((objectName) => {
+    const teleopCollection = teleopEntry
+      ? collectTeleopSources(teleopEntry, request.anchor, objectName)
+      : { points: [], byDemoName: {} };
+    return {
+      teleopPoints: teleopCollection.points,
+      successPoints: successEntry
+        ? collectGeneratedObjectPoints(
+            successEntry,
+            'success',
+            request.anchor,
+            teleopCollection.byDemoName,
+            objectName,
+          )
+        : [],
+      failedPoints: failedEntry
+        ? collectGeneratedObjectPoints(
+            failedEntry,
+            'failed',
+            request.anchor,
+            teleopCollection.byDemoName,
+            objectName,
+          )
+        : [],
+    };
+  });
+  const teleopPoints = collections.flatMap(
+    (collection) => collection.teleopPoints,
+  );
+  const includedTeleopDemos = new Set(
+    teleopPoints.map((point) => point.demoName),
+  ).size;
 
   return {
     anchor: request.anchor,
-    successPoints: successEntry
-      ? collectGeneratedObjectPoints(
-          successEntry,
-          'success',
-          request.anchor,
-          teleopCollection.byDemoName,
-          objectName,
-        )
-      : [],
-    failedPoints: failedEntry
-      ? collectGeneratedObjectPoints(
-          failedEntry,
-          'failed',
-          request.anchor,
-          teleopCollection.byDemoName,
-          objectName,
-        )
-      : [],
-    teleopPoints: teleopCollection.points,
-    teleopDiagnostics: teleopCollection.diagnostics,
+    allObjects: request.allObjects,
+    successPoints: collections.flatMap(
+      (collection) => collection.successPoints,
+    ),
+    failedPoints: collections.flatMap((collection) => collection.failedPoints),
+    teleopPoints,
+    teleopDiagnostics: teleopEntry
+      ? {
+          totalDemos: teleopEntry.demos.length,
+          includedDemos: includedTeleopDemos,
+          missingAnchorCount: teleopEntry.demos.length - includedTeleopDemos,
+        }
+      : null,
     availableObjects,
   };
 }
@@ -3092,6 +3117,9 @@ function listDemoVideoInfo(
 ): DemoVideoInfo[] {
   const demoGroup = getDemoGroup(entry, demoName);
   const videos: DemoVideoInfo[] = [];
+  const recordedFps = Number(
+    getAttributeValue(getDataGroup(entry.h5File), 'fps'),
+  );
 
   const cameraNames = listCameraNames(demoGroup);
   cameraNames.sort((left, right) => left.localeCompare(right));
@@ -3111,34 +3139,20 @@ function listDemoVideoInfo(
       height,
       width,
       channels,
+      chunkFrameCount: dataset.metadata.chunks?.[0] ?? null,
+      fps: Number.isFinite(recordedFps) && recordedFps > 0 ? recordedFps : null,
     });
   }
 
   return videos;
 }
 
-function datasetToUint8Array(dataset: H5WasmDataset): Uint8Array {
-  const { value } = dataset;
-
-  if (value instanceof Uint8Array) {
-    return new Uint8Array(value);
-  }
-
-  if (ArrayBuffer.isView(value)) {
-    const copied = new Uint8Array(value.byteLength);
-    copied.set(
-      new Uint8Array(value.buffer, value.byteOffset, value.byteLength),
-    );
-    return copied;
-  }
-
-  throw new Error(`Dataset '${dataset.path}' is not backed by byte data.`);
-}
-
 function loadDemoVideo(
   entry: OpenSourceEntry,
   demoName: string,
   videoKey: DemoVideoKey,
+  startFrame: number,
+  frameCount: number,
 ): LoadDemoVideoResult {
   const demoGroup = getDemoGroup(entry, demoName);
   const dataset = findVideoDataset(demoGroup, videoKey);
@@ -3150,11 +3164,13 @@ function loadDemoVideo(
     );
   }
 
-  const [frameCount, height, width, channels] = dataset.shape;
-  const frames = datasetToUint8Array(dataset);
-  const framesBuffer = frames.buffer.slice(
-    frames.byteOffset,
-    frames.byteOffset + frames.byteLength,
+  const [, height, width, channels] = dataset.shape;
+  const frames = readVideoFrameBatch(dataset, startFrame, frameCount);
+  // h5wasm.slice returns an owned buffer; transfer it without full-video copies.
+  const framesBuffer = (
+    frames.byteOffset === 0 && frames.byteLength === frames.buffer.byteLength
+      ? frames.buffer
+      : new Uint8Array(frames).buffer
   ) as ArrayBuffer;
 
   return {
@@ -3337,6 +3353,8 @@ async function handleRequest(
         entry,
         message.payload.demoName,
         message.payload.videoKey,
+        message.payload.startFrame,
+        message.payload.frameCount,
       );
 
       return {

@@ -1,8 +1,13 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { fetchBuffer } from '../fetch-utils';
-import { FileService, type H5File } from '../stores';
-import { loadDemoRows, openPoseTraceSource, processDataset } from './hdf5';
+import { FileService, type H5File, type LocalFile } from '../stores';
+import {
+  loadDemoRows,
+  loadDemoVideoFrames,
+  openPoseTraceSource,
+  processDataset,
+} from './hdf5';
 import { type PoseTraceSource } from './types';
 
 vi.mock(import('../fetch-utils'), () => ({
@@ -90,7 +95,7 @@ function remoteFile(name = 'remote.hdf5'): H5File {
   };
 }
 
-function localFile(name = 'local.hdf5', serverPath?: string): H5File {
+function localFile(name = 'local.hdf5', serverPath?: string): LocalFile {
   return {
     url: `u-${name}`,
     name,
@@ -214,6 +219,30 @@ describe('processDataset', () => {
   });
 });
 
+describe('loadDemoVideoFrames', () => {
+  it('requests only the specified video frame range and wraps its transferred buffer', async () => {
+    const promise = loadDemoVideoFrames(
+      fakeSource('s1'),
+      'demo_0',
+      'top_camera',
+      230,
+      230,
+    );
+    const { msg } = theWorker().lastPosted();
+    expect(msg.payload).toEqual({
+      sourceId: 's1',
+      demoName: 'demo_0',
+      videoKey: 'top_camera',
+      startFrame: 230,
+      frameCount: 230,
+    });
+    const framesBuffer = new Uint8Array([1, 2, 3]).buffer;
+    theWorker().emit({ id: msg.id, ok: true, result: { framesBuffer } });
+    const result = await promise;
+    expect(result.frames.buffer).toBe(framesBuffer);
+  });
+});
+
 describe('openPoseTraceSource', () => {
   const openResult = {
     sourceId: 'src-1',
@@ -221,6 +250,21 @@ describe('openPoseTraceSource', () => {
     demos: [],
     articulation: null,
   };
+
+  it('mounts large local files without copying them through the desktop bridge', async () => {
+    const readFile = vi.fn<NonNullable<RebelHdf5DesktopRuntime['readFile']>>();
+    globalThis.rebelHdf5Desktop = { readFile };
+    const file = localFile('large.hdf5', '/data/large.hdf5');
+    Object.defineProperty(file.file, 'size', { value: 2_571_546_006 });
+    const promise = openPoseTraceSource(file);
+    await vi.waitFor(() => {
+      expect(theWorker().lastPosted().msg.type).toBe('openLocalSource');
+    });
+    expect(readFile).not.toHaveBeenCalled();
+    const { msg } = theWorker().lastPosted();
+    theWorker().emit({ id: msg.id, ok: true, result: openResult });
+    await expect(promise).resolves.toMatchObject({ sourceId: 'src-1' });
+  });
 
   it('reads a local file fresh via rebelHdf5Desktop and transfers the buffer', async () => {
     const buffer = new ArrayBuffer(16);
