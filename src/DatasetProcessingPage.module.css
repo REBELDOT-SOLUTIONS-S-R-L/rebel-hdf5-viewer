@@ -25,17 +25,17 @@
   margin: 0;
   color: var(--color-gray);
   font-size: 0.82em;
-  font-weight: 700;
+  font-weight: 600;
   letter-spacing: 0.08em;
   text-transform: uppercase;
 }
 
 .title {
   margin: 0.25rem 0 0;
-  color: var(--color-gray);
-  font-family: var(--font-logo);
+  color: var(--color-heading);
+  font-family: var(--font-display);
   font-size: clamp(2.1em, 3vw, 2.8em);
-  font-weight: normal;
+  font-weight: 500;
 }
 
 .subtitle {
@@ -73,7 +73,7 @@
   margin-bottom: 0.5rem;
   color: var(--color-gray);
   font-size: 0.82em;
-  font-weight: 700;
+  font-weight: 600;
   letter-spacing: 0.06em;
   text-transform: uppercase;
 }
@@ -120,7 +120,7 @@
 
 .warningText {
   margin: 0;
-  color: #f4c76b;
+  color: var(--color-warn-text);
 }
 
 .warningText p {
@@ -164,8 +164,8 @@
   min-height: 2.6rem;
   padding: 0.55rem 0.9rem;
   border: 1px solid var(--color-border);
-  border-radius: 0.65rem;
-  background: rgba(255, 255, 255, 0.03);
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--color-tint-base) 3%, transparent);
   color: var(--color-gray);
   box-shadow: 0 0.35rem 0.9rem var(--color-shadow-soft);
   transition:
@@ -192,7 +192,7 @@
   max-height: 30rem;
   overflow: auto;
   padding: 0.45rem 0.35rem;
-  background: rgba(255, 255, 255, 0.015);
+  background: color-mix(in srgb, var(--color-tint-base) 1.5%, transparent);
   border: 1px solid var(--color-border);
   border-radius: 0.85rem;
 }
@@ -251,7 +251,7 @@
 
 .treeBranchIcon {
   flex: 0 0 auto;
-  color: #ffd000;
+  color: var(--color-accent-text);
   opacity: 0.9;
 }
 
@@ -293,7 +293,7 @@
 
 .treeLeaf input {
   margin: 0;
-  accent-color: #ffd000;
+  accent-color: var(--color-accent);
 }
 
 .treeLeafIcon {
@@ -325,7 +325,7 @@
 
 .sectionTitle {
   margin: 0;
-  color: var(--color-gray);
+  color: var(--color-heading);
   font-size: 1.1em;
 }
 
@@ -339,7 +339,7 @@
   margin: 1rem 0 0.75rem;
   color: var(--color-gray);
   font-size: 0.82em;
-  font-weight: 700;
+  font-weight: 600;
   letter-spacing: 0.06em;
   text-transform: uppercase;
 }
@@ -358,13 +358,13 @@
   padding: 0.85rem 1rem;
   border: 1px solid var(--color-border);
   border-radius: 0.85rem;
-  background: rgba(255, 255, 255, 0.02);
+  background: color-mix(in srgb, var(--color-tint-base) 2%, transparent);
   color: var(--color-gray);
 }
 
 .checkboxItem input {
   flex: 0 0 auto;
-  accent-color: #ffd000;
+  accent-color: var(--color-accent);
 }
 
 .checkboxItem span {
@@ -382,7 +382,7 @@
 }
 
 .inlineOption input {
-  accent-color: #ffd000;
+  accent-color: var(--color-accent);
 }
 
 .lerobotConfigGrid {
@@ -438,7 +438,7 @@
 .processingSpinner {
   flex: 0 0 auto;
   margin-top: 0.08rem;
-  color: #ffd000;
+  color: var(--color-accent-text);
   font-size: 1.15rem;
   animation: datasetProcessingSpin 0.9s linear infinite;
 }
@@ -462,29 +462,27 @@
 .progressBar {
   margin-top: 0.65rem;
   height: 0.5rem;
-  background: rgba(255, 255, 255, 0.06);
+  background: color-mix(in srgb, var(--color-tint-base) 6%, transparent);
   border-radius: 0.25rem;
   overflow: hidden;
 }
 
 .progressFill {
   height: 100%;
-  background: #ffd000;
+  background: var(--color-accent);
   border-radius: 0.25rem;
   transition: width 0.25s ease-out;
 }
 
 .primaryAction {
   composes: primaryBtn from './utils.module.css';
-  background-color: #ffd000 !important;
-  color: #111824 !important;
   display: inline-flex;
   align-items: center;
   gap: 0.55rem;
 }
 
 .primaryAction:hover:not(:disabled) {
-  background-color: #e1b800 !important;
+  background-color: var(--color-accent-hover) !important;
 }
 
 .primaryAction:disabled {
@@ -494,7 +492,7 @@
 
 .successText {
   margin: 0;
-  color: #a9e4a2;
+  color: var(--color-success-text);
 }
 
 .emptyState {
@@ -505,10 +503,10 @@
 
 .emptyTitle {
   margin: 0;
-  color: var(--color-gray);
-  font-family: var(--font-logo);
+  color: var(--color-heading);
+  font-family: var(--font-display);
   font-size: 1.5em;
-  font-weight: normal;
+  font-weight: 500;
 }
 
 .emptyText {
@@ -524,13 +522,11 @@
 
 .openBtn {
   composes: primaryBtn from './utils.module.css';
-  background-color: #ffd000 !important;
-  color: #111824 !important;
   text-decoration: none;
 }
 
 .openBtn:hover {
-  background-color: #e1b800 !important;
+  background-color: var(--color-accent-hover) !important;
 }
 
 .backendHeader {
@@ -542,7 +538,7 @@
 .backendHeader > svg {
   flex: 0 0 auto;
   font-size: 1.3rem;
-  color: #a9e4a2;
+  color: var(--color-success-text);
 }
 
 .backendTitle {
@@ -569,17 +565,17 @@
 }
 
 .backendToggle input {
-  accent-color: #a9e4a2;
+  accent-color: var(--color-success);
 }
 
 .downloadLink {
-  color: #ffd000;
+  color: var(--color-accent-text);
   text-decoration: underline;
   text-underline-offset: 0.2em;
 }
 
 .downloadLink:hover {
-  color: #e1b800;
+  color: var(--color-accent-text);
 }
 
 @keyframes datasetProcessingSpin {

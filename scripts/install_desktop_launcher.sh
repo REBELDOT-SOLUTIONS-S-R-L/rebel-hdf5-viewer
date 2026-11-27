@@ -3,7 +3,7 @@ set -euo pipefail
 
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 LAUNCHER="$ROOT_DIR/scripts/launch_desktop.sh"
-ICON="$ROOT_DIR/public/favicon.ico"
+ICON="$ROOT_DIR/public/icon-512.png"
 
 install_launcher() {
   local applications_dir="$1"

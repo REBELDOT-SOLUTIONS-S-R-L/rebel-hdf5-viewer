@@ -1,4 +1,14 @@
-## Dataset tooling — rebelHDF5
+<p align="center">
+  <img
+    src="assets/logos/rebeldot-logo-tagline-white-yellow@3x.png"
+    alt="RebelDot — Leading the Change"
+    width="360"
+  />
+</p>
+
+# rebel-HDF5-viewer
+
+## Dataset tooling
 
 Our training pipeline runs entirely on HDF5 files (Isaac Lab + MimicGen output).
 Open-source MyHDF5 was a good starting point for raw inspection but didn't fit
@@ -7,9 +17,16 @@ actually needed to iterate on dataset quality.
 
 ![rebelHDF5 viewer](screenshots/rebelhdf5-viewer.png)
 
-_Main view: opened-files panel on the far left, HDF5 group/demo tree, and a
-tabular view of the selected dataset (here, an `actions` array). The same chrome
-wraps every other tool below._
+_Main view: tools and opened files on the far left, the HDF5 group/demo tree,
+and the selected dataset plotted (here, `obs/joint_states` of a real SO-101
+pick-and-place demo: the shoulder-pan joint over the 818-step episode). The same
+chrome wraps every other tool below._
+
+> The viewer, Video Converter and Data Processing screenshots use a real SO-101
+> recording from the public Hugging Face dataset
+> [hwanghwijun/real-world-so101-cam123-hdf5](https://huggingface.co/datasets/hwanghwijun/real-world-so101-cam123-hdf5)
+> (`target_SO_ARM101_red_demo_2_3_4_cam123.hdf5`). The Pose Trace, Cloth
+> Distribution and Databricks screenshots show our Isaac Lab garment datasets.
 
 - **Pose Trace.** A 3D viewer that renders the EEF trajectory as a continuous
   path alongside the garment keypoints over time, so failed grasps, drift, or
@@ -35,9 +52,9 @@ wraps every other tool below._
 
   ![Video Converter](screenshots/rebelhdf5-video-converter.png)
 
-  _Video Converter: top-down camera stream extracted from the selected episode
-  and played back inline at native FPS, with a Save Video button to export an
-  MP4._
+  _Video Converter: the side camera (`obs/camera3_rgb`) of a real SO-101
+  episode, placing a red cube inside the target square, played back inline at 30
+  FPS, with a Save Video button to export an MP4._
 
 - **Data Processing.** In-browser cut / merge / append operations on episodes,
   with key-level selection so you can keep only the parts of an episode you
@@ -46,10 +63,10 @@ wraps every other tool below._
 
   ![Data Processing](screenshots/rebelhdf5-data-processing.png)
 
-  _Data Processing: Cut operation across an episode range (`demo_0`–`demo_99`)
-  with key-level selection — pick exactly which dataset paths (e.g.
-  `initial_state/articulations/robot/joint_position`) survive into the output
-  file._
+  _Data Processing: Cut operation across an episode range (`demo_0`–`demo_2`)
+  with key-level selection — pick exactly which dataset paths (e.g. one camera
+  stream such as `obs/camera3_rgb`, or `obs/joint_states`) survive into the
+  output file._
 
 - **Cloth Distribution Analysis.** Scatter of init poses (success vs failed
   overlaid on the teleop set) plus failure-rate heatmaps over the (pos_x, pos_y)
@@ -192,7 +209,7 @@ dependencies must be readable and executable by both users.
 │           ├── <span class="file">pose/format</span><span class="comment"># semantic format, e.g. xyz_quat_gripper</span>
 │           ├── <span class="file">pose/pose_order</span><span class="comment"># full pose column order, e.g. ["x", "y", "z", "qw", "qx", "qy", "qz"]</span>
 │           └── <span class="file">pose/component_slices</span><span class="comment"># EEF pose/gripper column slices in actions/pose; ranges are half-open [start, stop)</span>
-│            
+│
 ├── <span class="folder">demo_&lt;N&gt;/</span>
 │   ├── <span class="folder">attrs/</span>
 │   │   ├── <span class="file">num_samples</span><span class="comment"># number of total samples</span>
@@ -247,7 +264,7 @@ dependencies must be readable and executable by both users.
 │   │       │   └── <span class="file">object_name</span><span class="comment"># (T, 4, 4)</span>
 │   │       └── <span class="folder">subtask_term_signals/</span>
 │   │           └── <span class="file">signal_name</span><span class="comment"># (T, 1)</span>
-│   │ 
+│   │
 │   └── <span class="folder">reference_demo_indices/</span><span class="comment"># (num_subtasks,) source demo index MimicGen selected for each subtask</span>
 │       └── <span class="file">articulation_name</span>
 </pre>
@@ -272,3 +289,14 @@ as:
 
 All original code is used in accordance with the terms of the MIT License. A
 copy of the original license is included in this repository
+
+## Credits
+
+Developed at [RebelDot](https://www.rebeldot.com/).
+
+- **Alexandru Luci** (<alexandru.luci@rebeldot.com>) — main developer
+
+## License
+
+Released under the [MIT License](LICENSE.md), the same license as the upstream
+project it is based on.

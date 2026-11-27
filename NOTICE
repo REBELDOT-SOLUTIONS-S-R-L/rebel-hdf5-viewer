@@ -1,0 +1,15 @@
+rebelHDF5 is MIT-licensed (see LICENSE.md). These bundled or referenced
+third-party assets keep their own terms:
+
+- src/assets/fonts/Inter-Variable.woff2 — Inter, by Rasmus Andersson
+  (https://rsms.me/inter/), SIL Open Font License 1.1.
+
+- Basier Circle, by atipo foundry, is RebelDot's licensed heading typeface. It
+  is NOT included in this repository and the MIT licence does not cover it.
+  Builds pick it up from public/fonts/brand/ when a licensed copy is placed
+  there, and fall back to Inter otherwise.
+
+- assets/logos/ and the app icons in public/ (favicon.*, favicon192.png,
+  icon-512.png) — the RebelDot and RebelHDF5 marks are trademarks of RebelDot.
+  The MIT licence covers the code, not the brand. The HDF5 lettering is drawn
+  from Basier Circle and supplied as outlines only; no font file is included.

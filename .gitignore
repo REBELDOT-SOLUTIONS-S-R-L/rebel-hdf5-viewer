@@ -13,3 +13,8 @@ Thumbs.db
 coverage/
 .nyc_output/
 *.lcov
+
+# Licensed brand fonts (Basier Circle). Kept out of this public repository:
+# each developer copies them in locally — see the README in that folder.
+/public/fonts/brand/*
+!/public/fonts/brand/README.md

@@ -12,6 +12,8 @@ import {
 } from 'react-icons/fi';
 import { NavLink, useSearchParams } from 'react-router-dom';
 
+// The sidebar is ink in both themes, so it always takes the on-dark logo.
+import logoUrl from '../../assets/logos/rebelhdf5/rebelhdf5-logo-white-yellow.svg';
 import {
   getDatasetFeatureAvailability,
   useDatasetFeatureAvailability,
@@ -82,7 +84,7 @@ function Sidebar() {
       <div className={styles.sidebarInner}>
         <h1 className={styles.logo} data-reveal>
           <NavLink className={styles.logoLink} to="/">
-            rebelHDF<span className={styles.logo5}>5</span>
+            <img className={styles.logoImg} src={logoUrl} alt="rebelHDF5" />
           </NavLink>
         </h1>
         <nav className={styles.nav} data-reveal>

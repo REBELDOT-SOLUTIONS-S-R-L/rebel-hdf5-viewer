@@ -29,7 +29,7 @@ const {
 
 const projectRoot = path.resolve(__dirname, '..');
 const distDir = path.join(projectRoot, 'dist');
-const appIcon = path.join(projectRoot, 'public', 'favicon.ico');
+const appIcon = path.join(projectRoot, 'public', 'icon-512.png');
 const backendScript = path.join(projectRoot, 'scripts', 'backend_server.py');
 const appPreferredPort =
   Number(process.env.REBELHDF5_DESKTOP_PORT ?? process.env.ELECTRON_APP_PORT) ||
@@ -332,6 +332,7 @@ async function createWindow(appUrl, backendPort) {
     minHeight: 700,
     title: 'rebelHDF5',
     icon: appIcon,
+    backgroundColor: '#121212',
     webPreferences: {
       additionalArguments: [`--backend-port=${String(backendPort)}`],
       contextIsolation: true,
@@ -391,6 +392,11 @@ async function boot() {
 }
 
 app.whenReady().then(() => {
+  // macOS ignores the window icon; without a packaged .app the Dock would show
+  // Electron's own icon.
+  if (process.platform === 'darwin') {
+    app.dock?.setIcon(appIcon);
+  }
   configureFileSystemAccess();
   void boot();
 });
