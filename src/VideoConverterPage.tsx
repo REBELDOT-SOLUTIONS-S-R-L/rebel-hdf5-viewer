@@ -9,23 +9,27 @@ import {
   openPoseTraceSource,
 } from './pose-trace/hdf5';
 import {
-  type DemoVideoFrames,
   type DemoVideoInfo,
   type DemoVideoKey,
   type PoseTraceSource,
 } from './pose-trace/types';
+import {
+  createVideoFrameSource,
+  type VideoFrameSource,
+} from './pose-trace/video-frames';
 import { type H5File, useStore } from './stores';
 import { resolveFileUrl } from './utils';
 import { VideoConverterEmptyState } from './VideoConverterEmptyState';
+import { encodeVideoToBlob } from './VideoConverterPage.encoding';
 import styles from './VideoConverterPage.module.css';
 import {
   buildDownloadFilename,
   createFrameRenderer,
   formatDemoOption,
+  getPlaybackTiming,
   getSupportedMimeType,
+  getVideoFrameRate,
 } from './VideoConverterPage.utils';
-
-const PREVIEW_FPS = 30;
 
 interface ResolvedFileState {
   file: H5File | null;
@@ -42,12 +46,6 @@ interface SourceState {
 interface CachedDownload {
   selectionKey: string;
   url: string;
-}
-
-async function wait(milliseconds: number): Promise<void> {
-  return new Promise((resolve) => {
-    globalThis.setTimeout(resolve, milliseconds);
-  });
 }
 
 function noop(): void {
@@ -184,74 +182,6 @@ function usePoseTraceSource(file: H5File | null): SourceState {
   return state;
 }
 
-async function encodeVideoToBlob(
-  video: DemoVideoFrames,
-  mimeType: string,
-): Promise<Blob> {
-  const canvas = document.createElement('canvas');
-  canvas.width = video.width;
-  canvas.height = video.height;
-
-  const context = canvas.getContext('2d', { alpha: false });
-  if (!context) {
-    throw new Error('Could not create a canvas context for video encoding.');
-  }
-
-  const renderFrame = createFrameRenderer(
-    context,
-    video.width,
-    video.height,
-    video.channels,
-  );
-  const stream = canvas.captureStream(PREVIEW_FPS);
-  const recorder = new MediaRecorder(stream, { mimeType });
-  const chunks: BlobPart[] = [];
-
-  const stopPromise = new Promise<Blob>((resolve, reject) => {
-    recorder.addEventListener('dataavailable', (event) => {
-      if (event.data.size > 0) {
-        chunks.push(event.data);
-      }
-    });
-    recorder.addEventListener('error', () => {
-      reject(new Error('Video encoding failed.'));
-    });
-    recorder.addEventListener('stop', () => {
-      resolve(new Blob(chunks, { type: mimeType }));
-    });
-  });
-
-  recorder.start();
-
-  const [track] = stream.getVideoTracks();
-  const canvasTrack = track as CanvasCaptureMediaStreamTrack;
-  const supportsManualFrames = typeof canvasTrack.requestFrame === 'function';
-  const frameDuration = 1000 / PREVIEW_FPS;
-
-  async function renderFrames(frameIndex: number): Promise<void> {
-    if (frameIndex >= video.frameCount) {
-      return;
-    }
-
-    renderFrame(video.frames, frameIndex);
-    if (supportsManualFrames) {
-      canvasTrack.requestFrame();
-    }
-    await wait(frameDuration);
-    await renderFrames(frameIndex + 1);
-  }
-
-  await renderFrames(0);
-  await wait(frameDuration);
-  recorder.stop();
-
-  const blob = await stopPromise;
-  for (const mediaTrack of stream.getTracks()) {
-    mediaTrack.stop();
-  }
-  return blob;
-}
-
 function VideoConverterPage() {
   const [searchParams] = useSearchParams();
   const fileUrl = searchParams.get('url');
@@ -277,7 +207,7 @@ function VideoConverterPage() {
   const [selectedVideoKey, setSelectedVideoKey] = useState<DemoVideoKey | null>(
     null,
   );
-  const [videoData, setVideoData] = useState<DemoVideoFrames | null>(null);
+  const [videoData, setVideoData] = useState<VideoFrameSource | null>(null);
   const [videoLoading, setVideoLoading] = useState(false);
   const [videoError, setVideoError] = useState<string | null>(null);
   const [saveError, setSaveError] = useState<string | null>(null);
@@ -285,6 +215,7 @@ function VideoConverterPage() {
   const [currentFrameIndex, setCurrentFrameIndex] = useState(0);
   const [isPlaying, setIsPlaying] = useState(false);
 
+  const saveAbortRef = useRef<AbortController | null>(null);
   const previewCanvasRef = useRef<HTMLCanvasElement | null>(null);
   const cachedDownloadRef = useRef<CachedDownload | null>(null);
   const supportedMimeType = useMemo(() => getSupportedMimeType(), []);
@@ -367,14 +298,17 @@ function VideoConverterPage() {
   }, [selectedDemo, source]);
 
   useEffect(() => {
-    if (!source || !selectedDemo || !selectedVideoKey) {
+    const videoInfo = videoOptions.find(
+      (video) => video.key === selectedVideoKey,
+    );
+    if (!source || !selectedDemo || !selectedVideoKey || !videoInfo) {
       setVideoData(null);
       setVideoLoading(false);
       setVideoError(null);
       return undefined;
     }
 
-    let cancelled = false;
+    const controller = new AbortController();
     setVideoData(null);
     setVideoLoading(true);
     setVideoError(null);
@@ -383,22 +317,32 @@ function VideoConverterPage() {
     const resolvedSource = source;
     const resolvedDemo = selectedDemo;
     const resolvedVideoKey = selectedVideoKey;
+    const resolvedVideoInfo = videoInfo;
 
     async function loadVideo() {
       try {
-        const nextVideo = await loadDemoVideoFrames(
-          resolvedSource,
-          resolvedDemo,
-          resolvedVideoKey,
+        const nextVideo = createVideoFrameSource(
+          resolvedVideoInfo,
+          async (start, count) => {
+            const batch = await loadDemoVideoFrames(
+              resolvedSource,
+              resolvedDemo,
+              resolvedVideoKey,
+              start,
+              count,
+            );
+            return batch.frames;
+          },
         );
-        if (cancelled) {
+        await nextVideo.readFrame(0, controller.signal);
+        if (controller.signal.aborted) {
           return;
         }
 
         setVideoData(nextVideo);
         setVideoLoading(false);
       } catch (error: unknown) {
-        if (cancelled) {
+        if (controller.signal.aborted) {
           return;
         }
 
@@ -411,13 +355,17 @@ function VideoConverterPage() {
     void loadVideo();
 
     return () => {
-      cancelled = true;
+      controller.abort();
     };
-  }, [selectedDemo, selectedVideoKey, source]);
+  }, [selectedDemo, selectedVideoKey, source, videoOptions]);
 
   const selectedVideoInfo = useMemo(
     () => videoOptions.find((video) => video.key === selectedVideoKey) ?? null,
     [selectedVideoKey, videoOptions],
+  );
+
+  const playbackFps = getVideoFrameRate(
+    videoData?.fps ?? selectedVideoInfo?.fps,
   );
 
   // The schema discovers cameras dynamically, so we don't enforce a specific set.
@@ -438,8 +386,8 @@ function VideoConverterPage() {
 
   const selectionKey = `${file?.url ?? fileUrl ?? 'file'}:${selectedDemo ?? 'demo'}:${selectedVideoKey ?? 'video'}`;
   const currentFrameLabel = videoData ? currentFrameIndex + 1 : 0;
-  const currentTimeSeconds = videoData ? currentFrameIndex / PREVIEW_FPS : 0;
-  const totalTimeSeconds = videoData ? videoData.frameCount / PREVIEW_FPS : 0;
+  const currentTimeSeconds = videoData ? currentFrameIndex / playbackFps : 0;
+  const totalTimeSeconds = videoData ? videoData.frameCount / playbackFps : 0;
 
   useEffect(() => {
     if (
@@ -468,57 +416,67 @@ function VideoConverterPage() {
     setIsPlaying(Boolean(videoData && videoData.frameCount > 1));
   }, [videoData]);
 
+  useEffect(
+    () => () => {
+      saveAbortRef.current?.abort();
+    },
+    [videoData],
+  );
+
   useEffect(() => {
     const canvas = previewCanvasRef.current;
-    if (!canvas || !videoData) {
-      return;
+    if (!canvas || !videoData || isSaving) {
+      return undefined;
     }
-
+    const controller = new AbortController();
+    let timer: ReturnType<typeof globalThis.setTimeout> | undefined;
     canvas.width = videoData.width;
     canvas.height = videoData.height;
-
     const context = canvas.getContext('2d', { alpha: false });
     if (!context) {
-      return;
+      return undefined;
     }
-
     const renderFrame = createFrameRenderer(
       context,
       videoData.width,
       videoData.height,
       videoData.channels,
     );
-    renderFrame(videoData.frames, currentFrameIndex);
-  }, [currentFrameIndex, videoData]);
-
-  useEffect(() => {
-    if (!videoData || !isPlaying || videoData.frameCount <= 1) {
-      return undefined;
-    }
-
-    let animationFrameId = 0;
-    let lastTimestamp = performance.now();
-    const frameDuration = 1000 / PREVIEW_FPS;
-    const { frameCount } = videoData;
-
-    function tick(timestamp: number) {
-      const elapsed = timestamp - lastTimestamp;
-
-      if (elapsed >= frameDuration) {
-        const advance = Math.floor(elapsed / frameDuration);
-        lastTimestamp += advance * frameDuration;
-        setCurrentFrameIndex((current) => (current + advance) % frameCount);
+    const video = videoData;
+    async function drawFrame() {
+      try {
+        const index = Math.min(currentFrameIndex, video.frameCount - 1);
+        const readStartedAt = performance.now();
+        const frame = await video.readFrame(index, controller.signal);
+        if (controller.signal.aborted) {
+          return;
+        }
+        renderFrame(frame, 0);
+        if (isPlaying && !isSaving && video.frameCount > 1) {
+          const timing = getPlaybackTiming(
+            playbackFps,
+            performance.now() - readStartedAt,
+          );
+          timer = globalThis.setTimeout(() => {
+            setCurrentFrameIndex(
+              (current) =>
+                (current + timing.framesToAdvance) % video.frameCount,
+            );
+          }, timing.delayMs);
+        }
+      } catch (error: unknown) {
+        if (!controller.signal.aborted) {
+          setVideoError(formatUnknownError(error));
+          setIsPlaying(false);
+        }
       }
-
-      animationFrameId = globalThis.requestAnimationFrame(tick);
     }
-
-    animationFrameId = globalThis.requestAnimationFrame(tick);
-
+    void drawFrame();
     return () => {
-      globalThis.cancelAnimationFrame(animationFrameId);
+      controller.abort();
+      globalThis.clearTimeout(timer);
     };
-  }, [isPlaying, videoData]);
+  }, [currentFrameIndex, isPlaying, isSaving, playbackFps, videoData]);
 
   async function handleSaveVideo() {
     if (!videoData || !selectedDemo || !source) {
@@ -543,8 +501,17 @@ function VideoConverterPage() {
     }
 
     setIsSaving(true);
+    setIsPlaying(false);
+    const controller = new AbortController();
+    saveAbortRef.current = controller;
     try {
-      const blob = await encodeVideoToBlob(videoData, supportedMimeType);
+      const blob = await encodeVideoToBlob(
+        videoData,
+        supportedMimeType,
+        playbackFps,
+        controller.signal,
+      );
+      controller.signal.throwIfAborted();
       const url = URL.createObjectURL(blob);
 
       if (cachedDownloadRef.current) {
@@ -557,8 +524,11 @@ function VideoConverterPage() {
       };
       triggerDownload(url, filename);
     } catch (error: unknown) {
-      setSaveError(formatUnknownError(error));
+      if (!controller.signal.aborted) {
+        setSaveError(formatUnknownError(error));
+      }
     } finally {
+      saveAbortRef.current = null;
       setIsSaving(false);
     }
   }
@@ -611,7 +581,7 @@ function VideoConverterPage() {
               onChange={(event) => {
                 setCurrentFrameIndex(Number(event.target.value));
               }}
-              disabled={videoData.frameCount <= 1}
+              disabled={isSaving || videoData.frameCount <= 1}
             />
             <div className={styles.sliderMeta}>
               <span>
@@ -629,7 +599,7 @@ function VideoConverterPage() {
             onClick={() => {
               setIsPlaying((current) => !current);
             }}
-            disabled={videoData.frameCount <= 1}
+            disabled={isSaving || videoData.frameCount <= 1}
           >
             {isPlaying ? 'Pause' : 'Play'}
           </button>
@@ -842,7 +812,7 @@ function VideoConverterPage() {
                   </h2>
                   <p className={styles.previewMeta}>
                     {selectedVideoInfo
-                      ? `${selectedVideoInfo.path} · ${PREVIEW_FPS} FPS preview`
+                      ? `${selectedVideoInfo.path} · ${playbackFps} FPS preview`
                       : 'Choose a demo video to preview it.'}
                   </p>
                 </div>

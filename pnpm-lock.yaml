@@ -4,6 +4,9 @@ settings:
   autoInstallPeers: true
   excludeLinksFromLockfile: false
 
+overrides:
+  h5wasm: file:vendor/h5wasm-0.10.1-memory-3584mb.tgz
+
 importers:
 
   .:
@@ -13,7 +16,7 @@ importers:
         version: 17.0.0(@types/react-dom@18.3.7(@types/react@18.3.28))(@types/react@18.3.28)(axios@1.7.9)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)(typescript@5.9.3)(use-sync-external-store@1.6.0(react@18.3.1))
       '@h5web/h5wasm':
         specifier: 17.0.0
-        version: 17.0.0(@h5web/app@17.0.0(@types/react-dom@18.3.7(@types/react@18.3.28))(@types/react@18.3.28)(axios@1.7.9)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)(typescript@5.9.3)(use-sync-external-store@1.6.0(react@18.3.1)))(@types/react@18.3.28)(h5wasm-plugins@0.3.0(h5wasm@0.10.1))(react@18.3.1)(typescript@5.9.3)
+        version: 17.0.0(@h5web/app@17.0.0(@types/react-dom@18.3.7(@types/react@18.3.28))(@types/react@18.3.28)(axios@1.7.9)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)(typescript@5.9.3)(use-sync-external-store@1.6.0(react@18.3.1)))(@types/react@18.3.28)(h5wasm-plugins@0.3.0(h5wasm@file:vendor/h5wasm-0.10.1-memory-3584mb.tgz))(react@18.3.1)(typescript@5.9.3)
       '@react-hookz/web':
         specifier: 25.2.0
         version: 25.2.0(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
@@ -24,11 +27,11 @@ importers:
         specifier: 2.6.4
         version: 2.6.4
       h5wasm:
-        specifier: 0.10.1
-        version: 0.10.1
+        specifier: file:vendor/h5wasm-0.10.1-memory-3584mb.tgz
+        version: file:vendor/h5wasm-0.10.1-memory-3584mb.tgz
       h5wasm-plugins:
         specifier: 0.3.0
-        version: 0.3.0(h5wasm@0.10.1)
+        version: 0.3.0(h5wasm@file:vendor/h5wasm-0.10.1-memory-3584mb.tgz)
       modern-normalize:
         specifier: 3.0.1
         version: 3.0.1
@@ -528,6 +531,7 @@ packages:
 
   '@h5web/h5wasm@17.0.0':
     resolution: {integrity: sha512-FjgiHD5o0qhp7wyZc8qkhXDnwfA4/3o5QgPm1bFkt3HPGvQWOAgEKH/IeKUrMgxlEUL1xnxqEjqrq0s8XvIt1w==}
+    version: 17.0.0
     peerDependencies:
       '@h5web/app': 17.0.0
       '@types/react': 18.x
@@ -2414,14 +2418,16 @@ packages:
 
   h5wasm-plugins@0.3.0:
     resolution: {integrity: sha512-0L3XSaNa44sWQYfyI6b8aNm4uORJaFV9Q/+6DY/4J7M8lyO7B7ZBZCh4D7BVHpIK5XrfensRWOnuXArugMqfaQ==}
+    version: 0.3.0
     peerDependencies:
       h5wasm: ^0.10.1
     peerDependenciesMeta:
       h5wasm:
         optional: true
 
-  h5wasm@0.10.1:
-    resolution: {integrity: sha512-VxKLoNcPmn/4j6wWuf81gRGzcNjW1aHKtNgRp6ZBeYd6RoWmN3tk5HB6E3nPYsc3YhGT+o07xz1tK6wdMuPMiw==}
+  h5wasm@file:vendor/h5wasm-0.10.1-memory-3584mb.tgz:
+    resolution: {integrity: sha512-Qe/ETaGnhie8HJ7CuiQvmLVL0w+vl7X5F4wkqCNU1z32K/YkN7ahN+H4WHKjC5IkiuPBdtWePKXbH48o9SFB7w==, tarball: file:vendor/h5wasm-0.10.1-memory-3584mb.tgz}
+    version: 0.10.1
 
   has-bigints@1.1.0:
     resolution: {integrity: sha512-R3pbpkcIqv2Pm3dUwgjclDRVmWpTJW2DcMzcIhEXEx1oh/CEMObMm3KLmRJOdvhM7o4uQBnwr8pzRK2sJWIqfg==}
@@ -4581,16 +4587,16 @@ snapshots:
       - react-native
       - use-sync-external-store
 
-  '@h5web/h5wasm@17.0.0(@h5web/app@17.0.0(@types/react-dom@18.3.7(@types/react@18.3.28))(@types/react@18.3.28)(axios@1.7.9)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)(typescript@5.9.3)(use-sync-external-store@1.6.0(react@18.3.1)))(@types/react@18.3.28)(h5wasm-plugins@0.3.0(h5wasm@0.10.1))(react@18.3.1)(typescript@5.9.3)':
+  '@h5web/h5wasm@17.0.0(@h5web/app@17.0.0(@types/react-dom@18.3.7(@types/react@18.3.28))(@types/react@18.3.28)(axios@1.7.9)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)(typescript@5.9.3)(use-sync-external-store@1.6.0(react@18.3.1)))(@types/react@18.3.28)(h5wasm-plugins@0.3.0(h5wasm@file:vendor/h5wasm-0.10.1-memory-3584mb.tgz))(react@18.3.1)(typescript@5.9.3)':
     dependencies:
       '@h5web/app': 17.0.0(@types/react-dom@18.3.7(@types/react@18.3.28))(@types/react@18.3.28)(axios@1.7.9)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)(typescript@5.9.3)(use-sync-external-store@1.6.0(react@18.3.1))
       comlink: 4.4.2
-      h5wasm: 0.10.1
+      h5wasm: file:vendor/h5wasm-0.10.1-memory-3584mb.tgz
       nanoid: 5.1.7
       react: 18.3.1
     optionalDependencies:
       '@types/react': 18.3.28
-      h5wasm-plugins: 0.3.0(h5wasm@0.10.1)
+      h5wasm-plugins: 0.3.0(h5wasm@file:vendor/h5wasm-0.10.1-memory-3584mb.tgz)
       typescript: 5.9.3
 
   '@h5web/lib@17.0.0(@react-three/fiber@8.18.0(@types/react@18.3.28)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)(three@0.182.0))(@types/react-dom@18.3.7(@types/react@18.3.28))(@types/react@18.3.28)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)(three@0.182.0)(typescript@5.9.3)(use-sync-external-store@1.6.0(react@18.3.1))':
@@ -6884,11 +6890,11 @@ snapshots:
 
   grid-index@1.1.0: {}
 
-  h5wasm-plugins@0.3.0(h5wasm@0.10.1):
+  h5wasm-plugins@0.3.0(h5wasm@file:vendor/h5wasm-0.10.1-memory-3584mb.tgz):
     optionalDependencies:
-      h5wasm: 0.10.1
+      h5wasm: file:vendor/h5wasm-0.10.1-memory-3584mb.tgz
 
-  h5wasm@0.10.1: {}
+  h5wasm@file:vendor/h5wasm-0.10.1-memory-3584mb.tgz: {}
 
   has-bigints@1.1.0: {}
 

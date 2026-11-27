@@ -18,6 +18,10 @@ onlyBuiltDependencies:
 # Save exact dependency versions in `package.json`
 savePrefix: ''
 
+# h5wasm 0.10.1 rebuilt with a 3.5 GiB WebAssembly heap (upstream defaults to 2 GiB).
+overrides:
+  h5wasm: file:vendor/h5wasm-0.10.1-memory-3584mb.tgz
+
 # Fail install if any dependency has unreviewed build scripts
 strictDepBuilds: true
 

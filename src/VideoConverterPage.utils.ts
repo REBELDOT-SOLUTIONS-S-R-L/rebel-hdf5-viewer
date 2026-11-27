@@ -105,3 +105,22 @@ export function createFrameRenderer(
     context.putImageData(imageData, 0, 0);
   };
 }
+
+/** Respect recording speed; legacy files without valid metadata use 30 FPS. */
+export function getVideoFrameRate(fps?: number | null): number {
+  return typeof fps === 'number' && Number.isFinite(fps) && fps > 0 ? fps : 30;
+}
+
+/** Skip display frames after slow reads instead of stretching recorded time. */
+export function getPlaybackTiming(
+  fps: number,
+  readElapsedMs: number,
+): { framesToAdvance: number; delayMs: number } {
+  const frameMs = 1000 / getVideoFrameRate(fps);
+  const elapsed = Math.max(0, readElapsedMs);
+  const framesToAdvance = Math.max(1, Math.ceil(elapsed / frameMs));
+  return {
+    framesToAdvance,
+    delayMs: Math.max(0, framesToAdvance * frameMs - elapsed),
+  };
+}

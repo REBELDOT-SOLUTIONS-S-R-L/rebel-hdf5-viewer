@@ -1,4 +1,10 @@
-import { render, screen, waitFor, within } from '@testing-library/react';
+import {
+  fireEvent,
+  render,
+  screen,
+  waitFor,
+  within,
+} from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
@@ -65,6 +71,77 @@ afterEach(() => {
 });
 
 describe('VideoConverterPage', () => {
+  it('previews and seeks using a bounded frame range while retaining the full timeline', async () => {
+    const putImageData = vi.fn<(frame: ImageData) => void>();
+    vi.spyOn(HTMLCanvasElement.prototype, 'getContext').mockReturnValue({
+      putImageData,
+    } as unknown as CanvasRenderingContext2D);
+    const file = localFile();
+    useStore.setState({ opened: [file] }, false);
+    const video = {
+      key: 'top_camera',
+      label: 'Top Camera',
+      path: '/video',
+      frameCount: 5,
+      width: 1,
+      height: 1,
+      channels: 1,
+    };
+    mocks.listDemoVideos.mockResolvedValue([video]);
+    mocks.loadDemoVideoFrames.mockResolvedValue({
+      ...video,
+      frames: new Uint8Array([10, 20, 30, 40, 50]),
+    });
+    renderPage(`/video-converter?url=${encodeURIComponent(file.url)}`);
+    await expect(
+      screen.findByLabelText('Video frame preview'),
+    ).resolves.toBeInTheDocument();
+    // eslint-disable-next-line testing-library/prefer-user-event -- This project uses fireEvent without the user-event package.
+    fireEvent.click(screen.getByRole('button', { name: 'Pause' }));
+    const timeline = screen.getByLabelText('Video timeline');
+    expect(timeline).toHaveAttribute('max', '4');
+    // eslint-disable-next-line testing-library/prefer-user-event -- Exercise the range input's change event directly.
+    fireEvent.change(timeline, { target: { value: '4' } });
+    await waitFor(() => {
+      expect(putImageData.mock.calls.at(-1)?.[0].data[0]).toBe(50);
+    });
+    expect(mocks.loadDemoVideoFrames).toHaveBeenCalledExactlyOnceWith(
+      expect.objectContaining({ sourceId: 's1' }),
+      'demo_0',
+      'top_camera',
+      0,
+      5,
+    );
+  });
+
+  it('uses recorded FPS for the preview duration', async () => {
+    vi.spyOn(HTMLCanvasElement.prototype, 'getContext').mockReturnValue({
+      putImageData: vi.fn<(frame: ImageData) => void>(),
+    } as unknown as CanvasRenderingContext2D);
+    const file = localFile();
+    useStore.setState({ opened: [file] }, false);
+    const video = {
+      key: 'top_camera',
+      label: 'Top Camera',
+      path: '/video',
+      frameCount: 60,
+      width: 1,
+      height: 1,
+      channels: 1,
+      fps: 60,
+    };
+    mocks.listDemoVideos.mockResolvedValue([video]);
+    mocks.loadDemoVideoFrames.mockResolvedValue({
+      ...video,
+      frames: new Uint8Array(60),
+    });
+    renderPage(`/video-converter?url=${encodeURIComponent(file.url)}`);
+    await expect(
+      screen.findByText('/video · 60 FPS preview'),
+    ).resolves.toBeInTheDocument();
+    await expect(screen.findByText(/s \/ 1\.00/u)).resolves.toBeInTheDocument();
+  });
+
   it('shows the empty state when no file is open', () => {
     renderPage();
     expect(

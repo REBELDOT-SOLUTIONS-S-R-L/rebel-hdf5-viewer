@@ -92,6 +92,9 @@ export interface DemoVideoInfo {
   height: number;
   width: number;
   channels: number;
+  chunkFrameCount?: number | null;
+  /** Recorded frames per second from the HDF5 data-group metadata. */
+  fps?: number | null;
 }
 
 export interface DemoVideoFrames extends DemoVideoInfo {

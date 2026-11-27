@@ -34,6 +34,7 @@ import {
   type ParsedArticulation,
   type SourceFeatureCapabilities,
 } from './types';
+import { readVideoFrameBatch } from './video-frames';
 
 type PoseSeries = number[][][];
 type H5Module = Awaited<typeof h5wasm.ready>;
@@ -83,6 +84,8 @@ interface LoadDemoVideoPayload {
   sourceId: string;
   demoName: string;
   videoKey: DemoVideoKey;
+  startFrame: number;
+  frameCount: number;
 }
 
 interface CloseSourcePayload {
@@ -3114,6 +3117,9 @@ function listDemoVideoInfo(
 ): DemoVideoInfo[] {
   const demoGroup = getDemoGroup(entry, demoName);
   const videos: DemoVideoInfo[] = [];
+  const recordedFps = Number(
+    getAttributeValue(getDataGroup(entry.h5File), 'fps'),
+  );
 
   const cameraNames = listCameraNames(demoGroup);
   cameraNames.sort((left, right) => left.localeCompare(right));
@@ -3133,34 +3139,20 @@ function listDemoVideoInfo(
       height,
       width,
       channels,
+      chunkFrameCount: dataset.metadata.chunks?.[0] ?? null,
+      fps: Number.isFinite(recordedFps) && recordedFps > 0 ? recordedFps : null,
     });
   }
 
   return videos;
 }
 
-function datasetToUint8Array(dataset: H5WasmDataset): Uint8Array {
-  const { value } = dataset;
-
-  if (value instanceof Uint8Array) {
-    return new Uint8Array(value);
-  }
-
-  if (ArrayBuffer.isView(value)) {
-    const copied = new Uint8Array(value.byteLength);
-    copied.set(
-      new Uint8Array(value.buffer, value.byteOffset, value.byteLength),
-    );
-    return copied;
-  }
-
-  throw new Error(`Dataset '${dataset.path}' is not backed by byte data.`);
-}
-
 function loadDemoVideo(
   entry: OpenSourceEntry,
   demoName: string,
   videoKey: DemoVideoKey,
+  startFrame: number,
+  frameCount: number,
 ): LoadDemoVideoResult {
   const demoGroup = getDemoGroup(entry, demoName);
   const dataset = findVideoDataset(demoGroup, videoKey);
@@ -3172,11 +3164,13 @@ function loadDemoVideo(
     );
   }
 
-  const [frameCount, height, width, channels] = dataset.shape;
-  const frames = datasetToUint8Array(dataset);
-  const framesBuffer = frames.buffer.slice(
-    frames.byteOffset,
-    frames.byteOffset + frames.byteLength,
+  const [, height, width, channels] = dataset.shape;
+  const frames = readVideoFrameBatch(dataset, startFrame, frameCount);
+  // h5wasm.slice returns an owned buffer; transfer it without full-video copies.
+  const framesBuffer = (
+    frames.byteOffset === 0 && frames.byteLength === frames.buffer.byteLength
+      ? frames.buffer
+      : new Uint8Array(frames).buffer
   ) as ArrayBuffer;
 
   return {
@@ -3359,6 +3353,8 @@ async function handleRequest(
         entry,
         message.payload.demoName,
         message.payload.videoKey,
+        message.payload.startFrame,
+        message.payload.frameCount,
       );
 
       return {

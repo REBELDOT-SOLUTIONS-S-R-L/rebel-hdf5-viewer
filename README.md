@@ -108,6 +108,11 @@ scale.
 
 ## Local Desktop App
 
+The bundled h5wasm runtime has a **3.5 GiB** WebAssembly memory limit
+(3,758,096,384 bytes). The vendored dependency is installed automatically by
+pnpm. To rebuild it, activate Emscripten SDK 4.0.23 and run
+`bash scripts/build_h5wasm.sh`, followed by `pnpm install`.
+
 Run the Electron desktop shell locally:
 
 ```sh
@@ -123,6 +128,21 @@ If `dist/` is already built and you only want to launch the desktop shell:
 ```sh
 corepack pnpm desktop:run
 ```
+
+Install or refresh the app-menu launcher after moving the project:
+
+```sh
+bash scripts/install_desktop_launcher.sh
+```
+
+To install it for both shared-workstation accounts, run:
+
+```sh
+sudo bash scripts/install_desktop_launcher.sh --users alexluci iuliaj
+```
+
+Both launchers use this checkout's current path. The project and its
+dependencies must be readable and executable by both users.
 
 ## DATASET STRUCTURE
 

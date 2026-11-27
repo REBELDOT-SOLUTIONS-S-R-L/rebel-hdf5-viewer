@@ -58,6 +58,8 @@ interface LoadDemoVideoPayload {
   sourceId: string;
   demoName: string;
   videoKey: DemoVideoKey;
+  startFrame: number;
+  frameCount: number;
 }
 
 interface CloseSourcePayload {
@@ -247,9 +249,12 @@ export async function openPoseTraceSource(
     // modified externally (e.g. articulation attrs rewritten through the
     // Python backend), so the WORKERFS mount path fails with a stale-
     // reference FileReaderSync error.
-    const freshBuffer = file.serverPath
-      ? await readLocalFileFresh(file.serverPath)
-      : null;
+    // Chromium cannot allocate a single ArrayBuffer this large. Keep large
+    // local files on disk through WORKERFS instead of copying the whole file.
+    const freshBuffer =
+      file.serverPath && file.file.size < 2 ** 31
+        ? await readLocalFileFresh(file.serverPath)
+        : null;
 
     if (freshBuffer) {
       result = await callWorker<OpenSourceResult>(
@@ -375,11 +380,15 @@ export async function loadDemoVideoFrames(
   source: PoseTraceSource,
   demoName: string,
   videoKey: DemoVideoKey,
+  startFrame: number,
+  frameCount: number,
 ): Promise<DemoVideoFrames> {
   const result = await callWorker<LoadDemoVideoResult>('loadDemoVideo', {
     sourceId: source.sourceId,
     demoName,
     videoKey,
+    startFrame,
+    frameCount,
   });
 
   return {
